@@ -1,46 +1,63 @@
-from selenium import webdriver
-from selenium_stealth import stealth
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+import streamlit as st
+from decouple import config
+import openai
+
+response = False
+prompt_tokens = 0
+completion_tokes = 0
+total_tokens_used = 0
+cost_of_response = 0
+
+API_KEY = config('OPENAI_API_KEY')
+openai.api_key = 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
 
 
-def GetTop1GoogleResults(input):
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    driver = webdriver.Chrome(
-        options=options, executable_path="\chromedriver.exe")
+def make_request(question_input: str):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": f"{question_input}"},
+        ]
+    )
+    return response
 
-    stealth(driver,
-            languages=["en-US", "en"],
-            vendor="Google Inc.",
-            platform="Win32",
-            webgl_vendor="Intel Inc.",
-            renderer="Intel Iris OpenGL Engine",
-            fix_hairline=True,
-            )
 
-    query = input
+st.header("Streamlit + OpenAI ChatGPT API")
 
-    n_pages = 10
-    results = []
-    counter = 0
-    for page in range(1, n_pages):
-        url = "http://www.google.com/search?q=" + \
-            query + "&start=" + str((page - 1) * 10)
-        driver.get(url)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        search = soup.find_all('div', class_="yuRUbf")
-        for h in search:
-            counter = counter + 1
-            title = h.a.h3.text
-            link = h.a.get('href')
-            rank = counter
-            results.append({'title': h.a.h3.text, 'url': link,
-                            'domain': urlparse(link).netloc, 'rank': rank})
-    return results[0]['url']
-    # for i, result in enumerate(results):
-    #    firstResult  = result['url']
-    #    print(
-    #        f"Result {i+1}: {result['title']}\n{result['url']}\n{result['domain']}\n{result['rank']}")
+st.markdown("""---""")
+
+question_input = st.text_input("Enter question")
+rerun_button = st.button("Rerun")
+
+st.markdown("""---""")
+
+if question_input:
+    response = make_request(question_input)
+else:
+    pass
+
+if rerun_button:
+    response = make_request(question_input)
+else:
+    pass
+
+if response:
+    st.write("Response:")
+    st.write(response["choices"][0]["message"]["content"])
+
+    prompt_tokens = response["usage"]["prompt_tokens"]
+    completion_tokes = response["usage"]["completion_tokens"]
+    total_tokens_used = response["usage"]["total_tokens"]
+
+    cost_of_response = total_tokens_used * 0.000002
+else:
+    pass
+
+
+with st.sidebar:
+    st.title("Usage Stats:")
+    st.markdown("""---""")
+    st.write("Promt tokens used :", prompt_tokens)
+    st.write("Completion tokens used :", completion_tokes)
+    st.write("Total tokens used :", total_tokens_used)
+    st.write("Total cost of request: ${:.8f}".format(cost_of_response))
