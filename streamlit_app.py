@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import openai
 # Define API endpoint
-openai.api_key = "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"
 
 # Define conversation history file name
 conv_file = "conversation_history.txt"
