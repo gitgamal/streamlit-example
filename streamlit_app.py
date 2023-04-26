@@ -2,7 +2,7 @@ import os
 import time
 from pathlib import Path
 
-import openai==0.25.0
+import openai
 import pandas as pd
 import streamlit as st
 
