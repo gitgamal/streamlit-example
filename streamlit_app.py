@@ -1,63 +1,43 @@
 import streamlit as st
-from decouple import config
-import openai
+import requests
 
-response = False
-prompt_tokens = 0
-completion_tokes = 0
-total_tokens_used = 0
-cost_of_response = 0
+# Define API endpoint
+openai.api_key = "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"
 
-API_KEY = config('OPENAI_API_KEY')
-openai.api_key = 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
+# Define conversation history file name
+conv_file = "conversation_history.txt"
 
+# Check if conversation history file exists or not
+try:
+    with open(conv_file, mode="r") as f:
+        conversation_history = f.read()
+except FileNotFoundError:
+    conversation_history = ""
 
-def make_request(question_input: str):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": f"{question_input}"},
-        ]
-    )
-    return response
+# Define Streamlit app
+def app():
+    st.title("GPT Chat App")
+    user_input = st.text_input("Enter your message")
 
+    if st.button("Send"):
+        # Send user message to API
+        response = requests.post(api_endpoint, json={"message": user_input})
 
-st.header("Streamlit + OpenAI ChatGPT API")
+        if response.status_code != 200:
+            st.error("Error occurred while processing message")
+        else:
+            # Get bot response from API
+            bot_response = response.json().get("response")
+            st.write("Bot says: ", bot_response)
 
-st.markdown("""---""")
+            # Store conversation history
+            with open(conv_file, mode="a") as f:
+                f.write("User: " + user_input + "\n")
+                f.write("Bot: " + bot_response + "\n")
 
-question_input = st.text_input("Enter question")
-rerun_button = st.button("Rerun")
+    # Display conversation history
+    st.write("---Conversation History---")
+    st.write(conversation_history)
 
-st.markdown("""---""")
-
-if question_input:
-    response = make_request(question_input)
-else:
-    pass
-
-if rerun_button:
-    response = make_request(question_input)
-else:
-    pass
-
-if response:
-    st.write("Response:")
-    st.write(response["choices"][0]["message"]["content"])
-
-    prompt_tokens = response["usage"]["prompt_tokens"]
-    completion_tokes = response["usage"]["completion_tokens"]
-    total_tokens_used = response["usage"]["total_tokens"]
-
-    cost_of_response = total_tokens_used * 0.000002
-else:
-    pass
-
-
-with st.sidebar:
-    st.title("Usage Stats:")
-    st.markdown("""---""")
-    st.write("Promt tokens used :", prompt_tokens)
-    st.write("Completion tokens used :", completion_tokes)
-    st.write("Total tokens used :", total_tokens_used)
-    st.write("Total cost of request: ${:.8f}".format(cost_of_response))
+if __name__ == "__main__":
+    app()
